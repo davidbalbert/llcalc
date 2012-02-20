@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <setjmp.h>
 
+#define BOOL char
 #define TRUE 1
 #define FALSE 0
 
@@ -10,21 +12,24 @@
 
 #define DONE_PARSING(p) (*p->cursor == 0)
 
-#define PEEK(p) *p->cursor
+#define PEEK(p) (*p->cursor)
 
-#define ERROR(parser, error_format, ...) \
+#define THROW_ERROR(parser, error_format, ...) \
         do { \
                 char msg[BUFFER_SIZE]; \
                 sprintf(msg, error_format, __VA_ARGS__); \
                 print_error(parser, msg); \
-                exit(1); \
+                longjmp(parser->jmp_env, 1); \
         } while(0)
+
+#define RESCUE_ERROR(parser) (!setjmp(parser.jmp_env))
 
 #define MAKE_PARSER(str) { str, str }
 
 struct Parser {
         char *input;
         char *cursor;
+        jmp_buf jmp_env;
 };
 
 char *chop(char *str)
@@ -73,7 +78,7 @@ int parse_number(struct Parser *parser)
                 num[size] = 0;
                 return strtol(num, NULL, 10);
         } else {
-                ERROR(parser, "Expected a number, but got a '%c'", *parser->cursor);
+                THROW_ERROR(parser, "Expected a number, but got a '%c'", *parser->cursor);
         }
 
         return 0;
@@ -92,7 +97,7 @@ char parse_operator(struct Parser *parser)
                 parser->cursor++;
                 return op;
         default:
-                ERROR(parser, "I don't understand the '%c' operator", op);
+                THROW_ERROR(parser, "I don't understand the '%c' operator", op);
         }
 }
 
@@ -169,6 +174,7 @@ int parse_expression(struct Parser *parser)
         return number;
 }
 
+
 int main(int argc, const char *argv[])
 {
         char input[BUFFER_SIZE];
@@ -183,8 +189,10 @@ int main(int argc, const char *argv[])
                         }
 
                         struct Parser parser = MAKE_PARSER(input);
-                        result = parse_expression(&parser);
-                        printf("=> %d\n", result);
+                        if (RESCUE_ERROR(parser)) {
+                                result = parse_expression(&parser);
+                                printf("=> %d\n", result);
+                        }
                 }
         }
 
