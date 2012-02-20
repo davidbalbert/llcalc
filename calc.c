@@ -119,6 +119,11 @@ int main(int argc, const char *argv[])
                 printf(">> ");
                 if (fgets(input, BUFFER_SIZE, stdin)) {
                         chop(input);
+                        if (strlen(input) == 0) {
+                                printf("=> \n");
+                                continue;
+                        }
+
                         struct Parser parser = { input, input };
                         result = parse_expression(&parser);
                         printf("=> %d\n", result);
