@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -87,6 +88,7 @@ char parse_operator(struct Parser *parser)
         case '-':
         case '*':
         case '/':
+        case '^':
                 parser->cursor++;
                 return op;
         default:
@@ -94,9 +96,29 @@ char parse_operator(struct Parser *parser)
         }
 }
 
-int parse_times_expr(struct Parser *parser)
+int parse_pow_expr(struct Parser *parser)
 {
         int number = parse_number(parser);
+
+        eat_whitespace(parser);
+
+        if (DONE_PARSING(parser))
+                return number;
+
+        if (PEEK(parser) != '^')
+                return number;
+
+        // we already know the next operator is a '^'
+        // so just eat it up
+        parse_operator(parser);
+        eat_whitespace(parser);
+
+        return pow(number, parse_pow_expr(parser));
+}
+
+int parse_times_expr(struct Parser *parser)
+{
+        int number = parse_pow_expr(parser);
 
         eat_whitespace(parser);
 
@@ -107,9 +129,9 @@ int parse_times_expr(struct Parser *parser)
                 op = parse_operator(parser);
                 eat_whitespace(parser);
                 if (op == '*')
-                        number *= parse_number(parser);
+                        number *= parse_pow_expr(parser);
                 else if (op == '/')
-                        number /= parse_number(parser);
+                        number /= parse_pow_expr(parser);
                 eat_whitespace(parser);
         }
 
