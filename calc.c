@@ -9,6 +9,8 @@
 
 #define DONE_PARSING(p) (*p->cursor == 0)
 
+#define PEEK(p) *p->cursor
+
 #define ERROR(parser, error_format, ...) \
         do { \
                 char msg[BUFFER_SIZE]; \
@@ -83,6 +85,8 @@ char parse_operator(struct Parser *parser)
         switch (op) {
         case '+':
         case '-':
+        case '*':
+        case '/':
                 parser->cursor++;
                 return op;
         default:
@@ -90,11 +94,34 @@ char parse_operator(struct Parser *parser)
         }
 }
 
+int parse_times_expr(struct Parser *parser)
+{
+        int number = parse_number(parser);
+
+        eat_whitespace(parser);
+
+        while(!DONE_PARSING(parser)) {
+                char op = PEEK(parser);
+                if (op == '+' || op == '-')
+                        return number;
+                op = parse_operator(parser);
+                eat_whitespace(parser);
+                if (op == '*')
+                        number *= parse_number(parser);
+                else if (op == '/')
+                        number /= parse_number(parser);
+                eat_whitespace(parser);
+        }
+
+        return number;
+
+}
+
 int parse_expression(struct Parser *parser)
 {
         eat_whitespace(parser);
 
-        int number = parse_number(parser);
+        int number = parse_times_expr(parser);
 
         eat_whitespace(parser);
 
@@ -102,9 +129,9 @@ int parse_expression(struct Parser *parser)
                 char op = parse_operator(parser);
                 eat_whitespace(parser);
                 if (op == '+')
-                        number += parse_number(parser);
+                        number += parse_times_expr(parser);
                 else if (op == '-')
-                        number -= parse_number(parser);
+                        number -= parse_times_expr(parser);
                 eat_whitespace(parser);
         }
         return number;
