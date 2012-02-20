@@ -53,20 +53,22 @@ void eat_whitespace(struct Parser *parser)
 int parse_number(struct Parser *parser)
 {
         char c;
-        char *start = parser->cursor;
+        int size = 0;
         char num[BUFFER_SIZE];
 
         do {
                 c = *parser->cursor;
                 if (c >= '0' && c <= '9') {
-                        num[parser->cursor - start] = c;
+                        num[size] = c;
                         parser->cursor++;
+                        size++;
                 } else {
                         break;
                 }
         } while (TRUE);
 
-        if (parser->cursor - start > 0) {
+        if (size > 0) {
+                num[size] = 0;
                 return strtol(num, NULL, 10);
         } else {
                 ERROR(parser, "Expected a number, but got a '%c'", *parser->cursor);
@@ -77,7 +79,15 @@ int parse_number(struct Parser *parser)
 
 char parse_operator(struct Parser *parser)
 {
-        return 0;
+        char op = *parser->cursor;
+
+        switch (op) {
+        case '+':
+                parser->cursor++;
+                return op;
+        default:
+                ERROR(parser, "I don't understand the '%c' operator", op);
+        }
 }
 
 int parse_expression(struct Parser *parser)
@@ -90,14 +100,14 @@ int parse_expression(struct Parser *parser)
 
         if (DONE_PARSING(parser)) {
                 return number;
+        } else {
+                char operator = parse_operator(parser);
+                if (operator == '+')
+                        return number + parse_expression(parser);
         }
 
-        char operator = parse_operator(parser);
-        if (operator == '+') {
-                return number + parse_expression(parser);
-        }
-
-        ERROR(parser, "I don't understand the '%c' operator", operator);
+        fprintf(stderr, "We shouldn't get here!");
+        exit(1);
 }
 
 int main(int argc, const char *argv[])
