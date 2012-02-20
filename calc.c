@@ -114,7 +114,6 @@ int parse_times_expr(struct Parser *parser)
         }
 
         return number;
-
 }
 
 int parse_expression(struct Parser *parser)
@@ -147,7 +146,6 @@ int main(int argc, const char *argv[])
                 if (fgets(input, BUFFER_SIZE, stdin)) {
                         chop(input);
                         if (strlen(input) == 0) {
-                                printf("=> \n");
                                 continue;
                         }
 
