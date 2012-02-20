@@ -22,9 +22,13 @@
                 longjmp(parser->jmp_env, 1); \
         } while(0)
 
-#define RESCUE_ERROR(parser) (!setjmp(parser.jmp_env))
+#define TRY_ERROR(parser) if (!setjmp(parser->jmp_env))
 
-#define MAKE_PARSER(str) { str, str }
+#define INIT_PARSER(parser, str) \
+        do { \
+                parser->str = input; \
+                parser->cursor = input; \
+        } while(0)
 
 struct Parser {
         char *input;
@@ -97,7 +101,7 @@ char parse_operator(struct Parser *parser)
                 parser->cursor++;
                 return op;
         default:
-                THROW_ERROR(parser, "I don't understand the '%c' operator", op);
+                THROW_ERROR(parser, "Expecting an operator but got '%c' instead", op);
         }
 }
 
@@ -188,11 +192,15 @@ int main(int argc, const char *argv[])
                                 continue;
                         }
 
-                        struct Parser parser = MAKE_PARSER(input);
-                        if (RESCUE_ERROR(parser)) {
-                                result = parse_expression(&parser);
+                        struct Parser *parser = malloc(sizeof(struct Parser));
+                        INIT_PARSER(parser, input);
+
+                        TRY_ERROR(parser) {
+                                result = parse_expression(parser);
                                 printf("=> %d\n", result);
                         }
+
+                        free(parser);
                 }
         }
 
