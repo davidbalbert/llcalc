@@ -7,6 +7,18 @@
 
 #define BUFFER_SIZE 1024
 
+#define DONE_PARSING(p) *p->cursor == 0
+
+#define ERROR(parser, error_format, ...) \
+        do { \
+                char msg[BUFFER_SIZE]; \
+                sprintf(msg, error_format, __VA_ARGS__); \
+                print_error(parser, msg); \
+                exit(1); \
+        } while(0);
+
+
+
 struct Parser {
         char *input;
         char *cursor;
@@ -31,8 +43,35 @@ void print_error(struct Parser *parser, char *msg) {
         fprintf(stderr, "^\n");
 }
 
+void eat_whitespace(struct Parser *parser)
+{
+        while (*parser->cursor == '\t' || *parser->cursor == ' ') {
+                parser->cursor++;
+        }
+}
+
 int parse_number(struct Parser *parser)
 {
+        char c;
+        char *start = parser->cursor;
+        char num[BUFFER_SIZE];
+
+        do {
+                c = *parser->cursor;
+                if (c >= '0' && c <= '9') {
+                        num[parser->cursor - start] = c;
+                        parser->cursor++;
+                } else {
+                        break;
+                }
+        } while (TRUE);
+
+        if (parser->cursor - start > 0) {
+                return strtol(num, NULL, 10);
+        } else {
+                ERROR(parser, "Expected a number, but got a '%c'", *parser->cursor);
+        }
+
         return 0;
 }
 
@@ -43,18 +82,22 @@ char parse_operator(struct Parser *parser)
 
 int parse_expression(struct Parser *parser)
 {
-        //eat_whitespace(parser);
+        eat_whitespace(parser);
 
-        int left_operand = parse_number(parser);
-        char operator = parse_operator(parser);
-        if (operator == '+') {
-                return left_operand + parse_expression(parser);
+        int number = parse_number(parser);
+
+        eat_whitespace(parser);
+
+        if (DONE_PARSING(parser)) {
+                return number;
         }
 
-        char msg[BUFFER_SIZE];
-        sprintf(msg, "I don't understand the '%c' operator", operator);
-        print_error(parser, msg);
-        exit(1);
+        char operator = parse_operator(parser);
+        if (operator == '+') {
+                return number + parse_expression(parser);
+        }
+
+        ERROR(parser, "I don't understand the '%c' operator", operator);
 }
 
 int main(int argc, const char *argv[])
@@ -67,8 +110,8 @@ int main(int argc, const char *argv[])
                 if (fgets(input, BUFFER_SIZE, stdin)) {
                         chop(input);
                         struct Parser parser = { input, input };
-                        //result = parse_expression(&parser);
-                        //printf("=> %d\n", result);
+                        result = parse_expression(&parser);
+                        printf("=> %d\n", result);
                 }
         }
 
