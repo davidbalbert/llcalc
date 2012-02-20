@@ -1,4 +1,4 @@
-This file isn't parsed. It's just a record of the grammar that is implemented in calc.c.
+NOTE: This file isn't parsed. It's just a record of the grammar that is implemented in calc.c.
 
 expr:
   times_expr { '+' times_expr }
