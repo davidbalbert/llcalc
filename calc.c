@@ -20,7 +20,7 @@
                 exit(1); \
         } while(0)
 
-
+#define MAKE_PARSER(str) { str, str }
 
 struct Parser {
         char *input;
@@ -182,7 +182,7 @@ int main(int argc, const char *argv[])
                                 continue;
                         }
 
-                        struct Parser parser = { input, input };
+                        struct Parser parser = MAKE_PARSER(input);
                         result = parse_expression(&parser);
                         printf("=> %d\n", result);
                 }
