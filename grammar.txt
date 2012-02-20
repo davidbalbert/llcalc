@@ -11,5 +11,9 @@ times_expr:
   | pow_expr
 
 pow_expr:
-  NUMBER '^' pow_expr
+  uminus_expr '^' pow_expr
+  | uminus_expr
+
+uminus_expr:
+  '-' NUMBER
   | NUMBER

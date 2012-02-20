@@ -18,7 +18,7 @@
                 sprintf(msg, error_format, __VA_ARGS__); \
                 print_error(parser, msg); \
                 exit(1); \
-        } while(0);
+        } while(0)
 
 
 
@@ -96,9 +96,20 @@ char parse_operator(struct Parser *parser)
         }
 }
 
+int parse_uminus_expr(struct Parser *parser)
+{
+        if (PEEK(parser) == '-') {
+                parse_operator(parser);
+                eat_whitespace(parser);
+                return -1 * parse_number(parser);
+        } else {
+                return parse_number(parser);
+        }
+}
+
 int parse_pow_expr(struct Parser *parser)
 {
-        int number = parse_number(parser);
+        int number = parse_uminus_expr(parser);
 
         eat_whitespace(parser);
 
