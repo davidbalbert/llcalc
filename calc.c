@@ -7,7 +7,7 @@
 
 #define BUFFER_SIZE 1024
 
-#define DONE_PARSING(p) *p->cursor == 0
+#define DONE_PARSING(p) (*p->cursor == 0)
 
 #define ERROR(parser, error_format, ...) \
         do { \
@@ -29,7 +29,6 @@ char *chop(char *str)
         str[strlen(str) - 1] = 0;
         return str;
 }
-
 
 void print_error(struct Parser *parser, char *msg) {
         fprintf(stderr, "%s\n", msg);
@@ -83,6 +82,7 @@ char parse_operator(struct Parser *parser)
 
         switch (op) {
         case '+':
+        case '-':
                 parser->cursor++;
                 return op;
         default:
@@ -98,16 +98,16 @@ int parse_expression(struct Parser *parser)
 
         eat_whitespace(parser);
 
-        if (DONE_PARSING(parser)) {
-                return number;
-        } else {
-                char operator = parse_operator(parser);
-                if (operator == '+')
-                        return number + parse_expression(parser);
+        while(!DONE_PARSING(parser)) {
+                char op = parse_operator(parser);
+                eat_whitespace(parser);
+                if (op == '+')
+                        number += parse_number(parser);
+                else if (op == '-')
+                        number -= parse_number(parser);
+                eat_whitespace(parser);
         }
-
-        fprintf(stderr, "We shouldn't get here!");
-        exit(1);
+        return number;
 }
 
 int main(int argc, const char *argv[])
