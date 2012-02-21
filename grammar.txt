@@ -6,8 +6,8 @@ expr:
   | times_expr
 
 times_expr:
-  pow_expr { '*' times_expr }
-  | pow_expr { '/' times_expr }
+  pow_expr { '*' pow_expr }
+  | pow_expr { '/' pow_expr }
   | pow_expr
 
 pow_expr:
@@ -15,5 +15,9 @@ pow_expr:
   | uminus_expr
 
 uminus_expr:
-  '-' NUMBER
+  '-' parens_expr
+  | parens_expr
+
+parens_expr:
+  '(' expr ')'
   | NUMBER

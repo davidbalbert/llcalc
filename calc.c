@@ -26,15 +26,19 @@
 
 #define INIT_PARSER(parser, str) \
         do { \
-                parser->str = input; \
-                parser->cursor = input; \
+                parser->input = str; \
+                parser->cursor = str; \
+                parser->nesting = 0; \
         } while(0)
 
 struct Parser {
         char *input;
         char *cursor;
         jmp_buf jmp_env;
+        int nesting;
 };
+
+int parse_expression(struct Parser *parser);
 
 char *chop(char *str)
 {
@@ -82,7 +86,10 @@ int parse_number(struct Parser *parser)
                 num[size] = 0;
                 return strtol(num, NULL, 10);
         } else {
-                THROW_ERROR(parser, "Expected a number, but got a '%c'", *parser->cursor);
+                if (PEEK(parser) == 0)
+                        THROW_ERROR(parser, "%s", "Expected a number, but reached the end of input");
+                else
+                        THROW_ERROR(parser, "Expected a number, but got a '%c'", *parser->cursor);
         }
 
         return 0;
@@ -100,19 +107,59 @@ char parse_operator(struct Parser *parser)
         case '^':
                 parser->cursor++;
                 return op;
+        case 0:
+                THROW_ERROR(parser, "%s", "Expecting an operator but reached the end of input");
         default:
                 THROW_ERROR(parser, "Expecting an operator but got '%c' instead", op);
         }
 }
+
+char parse_paren(struct Parser *parser)
+{
+        char paren = *parser->cursor;
+        switch (paren) {
+        case '(':
+        case ')':
+                parser->cursor++;
+                return paren;
+        case 0:
+                THROW_ERROR(parser, "%s", "Expecting a paren, but reached the end of input");
+        default:
+                THROW_ERROR(parser, "Expecting a paren, but got '%c' instead", paren);
+        }
+}
+
+int parse_parens_expression(struct Parser *parser)
+{
+        char c = PEEK(parser);
+        int number = 0;
+        if (c == '(') {
+                c = parse_paren(parser);
+                parser->nesting++;
+                eat_whitespace(parser);
+
+                number = parse_expression(parser);
+
+                c = parse_paren(parser);
+                if (c != ')')
+                        THROW_ERROR(parser, "Expecting ')', but got '%c'", c);
+                parser->nesting--;
+        } else {
+                number = parse_number(parser);
+        }
+
+        return number;
+}
+
 
 int parse_uminus_expr(struct Parser *parser)
 {
         if (PEEK(parser) == '-') {
                 parse_operator(parser);
                 eat_whitespace(parser);
-                return -1 * parse_number(parser);
+                return -1 * parse_parens_expression(parser);
         } else {
-                return parse_number(parser);
+                return parse_parens_expression(parser);
         }
 }
 
@@ -144,6 +191,10 @@ int parse_times_expr(struct Parser *parser)
 
         while(!DONE_PARSING(parser)) {
                 char op = PEEK(parser);
+
+                if (op == ')' && parser->nesting)
+                        return number;
+
                 if (op == '+' || op == '-')
                         return number;
                 op = parse_operator(parser);
@@ -167,7 +218,12 @@ int parse_expression(struct Parser *parser)
         eat_whitespace(parser);
 
         while(!DONE_PARSING(parser)) {
-                char op = parse_operator(parser);
+                char op = PEEK(parser);
+
+                if (op == ')' && parser->nesting)
+                        return number;
+
+                op = parse_operator(parser);
                 eat_whitespace(parser);
                 if (op == '+')
                         number += parse_times_expr(parser);
