@@ -1,5 +1,9 @@
-calc: calc.c linenoise.h linenoise.c khash.h
-	gcc linenoise.c calc.c -lm -o calc
+CC=gcc
+
+calc: calc.c linenoise.c 
+	$(CC) linenoise.c calc.c -lm -o calc
+
+calc.c: khash.h linenoise.h
 
 .PHONY: clean
 clean:
