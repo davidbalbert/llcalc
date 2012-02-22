@@ -5,6 +5,7 @@
 #include <setjmp.h>
 
 #include "khash.h"
+#include "linenoise.h"
 
 #define BOOL char
 #define TRUE 1
@@ -341,29 +342,29 @@ int parse_expression(struct Parser *parser)
 
 int main(int argc, const char *argv[])
 {
-        char input[BUFFER_SIZE];
         int result = 0;
+        char * input;
 
         vars = kh_init(str);
 
-        while(TRUE) {
-                printf(">> ");
-                if (fgets(input, BUFFER_SIZE, stdin)) {
-                        chop(input);
-                        if (strlen(input) == 0) {
-                                continue;
-                        }
-
-                        struct Parser *parser = malloc(sizeof(struct Parser));
-                        INIT_PARSER(parser, input);
-
-                        TRY_ERROR(parser) {
-                                result = parse_expression(parser);
-                                printf("=> %d\n", result);
-                        }
-
-                        free(parser);
+        while((input = linenoise(">> ")) != NULL) {
+                
+                if (strlen(input) == 0) {
+                        continue;
                 }
+
+                linenoiseHistoryAdd(input);
+
+                struct Parser *parser = malloc(sizeof(struct Parser));
+                INIT_PARSER(parser, input);
+
+                TRY_ERROR(parser) {
+                        result = parse_expression(parser);
+                        printf("=> %d\n", result);
+                }
+        
+                free(parser);
+                free(input);
         }
 
         return 0;
