@@ -1,7 +1,7 @@
 llcalc
 ======
 
-A calculator written in c using a recursive descent parser.
+A calculator written in c using a recursive descent parser. llcalc has great error messages.
 
 ##Using
 
@@ -14,7 +14,13 @@ $ ./calc
 => 36
 >> baz = foo + bar
 => 42
+>> 5 + (2^%)
+Expected a number, but got a '%'
+	5 + (2^%)
+	~~~~~~~^
 ```
+
+You see? Great error messages!
 
 ##License
 
