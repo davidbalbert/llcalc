@@ -4,6 +4,8 @@
 #include <math.h>
 #include <setjmp.h>
 
+#include "khash.h"
+
 #define BOOL char
 #define TRUE 1
 #define FALSE 0
@@ -11,6 +13,11 @@
 #define BUFFER_SIZE 1024
 
 #define DONE_PARSING(p) (*p->cursor == 0)
+
+#define IS_DIGIT(c) (c >= '0' && c <= '9')
+
+#define IS_ALPHA(c) ((c >= 'a' && c <= 'z') || \
+                     (c >= 'A' && c <= 'Z'))
 
 #define PEEK(p) (*p->cursor)
 
@@ -30,6 +37,9 @@
                 parser->cursor = str; \
                 parser->nesting = 0; \
         } while(0)
+
+KHASH_MAP_INIT_STR(str, int);
+khash_t(str) *vars;
 
 struct Parser {
         char *input;
@@ -52,10 +62,29 @@ void print_error(struct Parser *parser, char *msg) {
 
         fprintf(stderr, "\t");
 
-        for (int i = 0; i < parser->cursor - parser->input; i++) {
+        int i;
+        for (i = 0; i < parser->cursor - parser->input; i++) {
                 fprintf(stderr, "~");
         }
         fprintf(stderr, "^\n");
+}
+
+void set_var(char *name, int value)
+{
+        khiter_t k;
+        int ret;
+
+        k = kh_put(str, vars, name, &ret);
+        kh_value(vars, k) = value;
+}
+
+int get_var(char *name)
+{
+        khiter_t k;
+
+        k = kh_get(str, vars, name);
+        if (k == kh_end(vars)) return 0;
+        return kh_value(vars, k);
 }
 
 void eat_whitespace(struct Parser *parser)
@@ -63,6 +92,43 @@ void eat_whitespace(struct Parser *parser)
         while (*parser->cursor == '\t' || *parser->cursor == ' ') {
                 parser->cursor++;
         }
+}
+
+char *parse_symbol(struct Parser *parser)
+{
+        char c;
+        int size = 0;
+        BOOL first_char = TRUE;
+        char *sym = malloc(sizeof(char) * BUFFER_SIZE);
+
+        do {
+                c = *parser->cursor;
+                if (IS_ALPHA(c) || c == '_') {
+                        sym[size] = c;
+                        parser->cursor++;
+                        size++;
+                        first_char = FALSE;
+                } else if (IS_DIGIT(c) && !first_char) {
+                        sym[size] = c;
+                        parser->cursor++;
+                        size++;
+                        first_char = FALSE;
+                } else {
+                        break;
+                }
+        } while (TRUE);
+
+        if (size > 0) {
+                sym[size] = 0;
+                return sym;
+        } else {
+                if (PEEK(parser) == 0)
+                        THROW_ERROR(parser, "%s", "Expected a variable, but reached the end of input");
+                else
+                        THROW_ERROR(parser, "Expected a variable, but got a '%c'", *parser->cursor);
+        }
+
+        return NULL;
 }
 
 int parse_number(struct Parser *parser)
@@ -73,7 +139,7 @@ int parse_number(struct Parser *parser)
 
         do {
                 c = *parser->cursor;
-                if (c >= '0' && c <= '9') {
+                if (IS_DIGIT(c)) {
                         num[size] = c;
                         parser->cursor++;
                         size++;
@@ -114,6 +180,20 @@ char parse_operator(struct Parser *parser)
         }
 }
 
+char parse_equal(struct Parser *parser)
+{
+        char c = *parser->cursor;
+
+        if (c == '=') {
+                parser->cursor++;
+                return c;
+        } else if (c == 0) {
+                THROW_ERROR(parser, "%s", "Expecting '=' but reached the end of input");
+        } else {
+                THROW_ERROR(parser, "Expecting '=' but got '%c' instead", c);
+        }
+}
+
 char parse_paren(struct Parser *parser)
 {
         char paren = *parser->cursor;
@@ -129,11 +209,36 @@ char parse_paren(struct Parser *parser)
         }
 }
 
+int parse_variable_expr(struct Parser *parser)
+{
+        char *name = parse_symbol(parser);
+        eat_whitespace(parser);
+        int value = 0;
+
+        char c = PEEK(parser);
+        if (c == '=') {
+                parse_equal(parser);
+                eat_whitespace(parser);
+                value = parse_expression(parser);
+
+                set_var(name, value);
+        } else {
+                value = get_var(name);
+        }
+
+        //free(name);
+
+        return value;
+}
+
 int parse_parens_expression(struct Parser *parser)
 {
         char c = PEEK(parser);
         int number = 0;
-        if (c == '(') {
+        if (IS_ALPHA(c) || c == '_') {
+                number = parse_variable_expr(parser);
+        }
+        else if (c == '(') {
                 c = parse_paren(parser);
                 parser->nesting++;
                 eat_whitespace(parser);
@@ -150,7 +255,6 @@ int parse_parens_expression(struct Parser *parser)
 
         return number;
 }
-
 
 int parse_uminus_expr(struct Parser *parser)
 {
@@ -239,6 +343,8 @@ int main(int argc, const char *argv[])
 {
         char input[BUFFER_SIZE];
         int result = 0;
+
+        vars = kh_init(str);
 
         while(TRUE) {
                 printf(">> ");

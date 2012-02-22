@@ -21,3 +21,8 @@ uminus_expr:
 parens_expr:
   '(' expr ')'
   | NUMBER
+  | variable_expr
+
+variable_expr:
+  | SYMBOL
+  | SYMBOL '=' expr
