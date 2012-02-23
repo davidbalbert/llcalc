@@ -27,3 +27,5 @@ You see? Great error messages!
 llcalc is licensed under the terms of the [GPLv2](http://www.gnu.org/licenses/gpl-2.0.html).
 
 llcalc contains `khash.h` which is licensed under the terms of the MIT license. More info can be found here: http://attractivechaos.awardspace.com/khash.h.html
+
+llcalc contains [linenoise](https://github.com/antirez/linenoise), which is licensed under the terms of the BSD license. More info can be found in `linenoise.c`.
