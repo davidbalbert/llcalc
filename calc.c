@@ -348,7 +348,6 @@ int main(int argc, const char *argv[])
         vars = kh_init(str);
 
         while((input = linenoise(">> ")) != NULL) {
-                
                 if (strlen(input) == 0) {
                         continue;
                 }
@@ -362,7 +361,7 @@ int main(int argc, const char *argv[])
                         result = parse_expression(parser);
                         printf("=> %d\n", result);
                 }
-        
+
                 free(parser);
                 free(input);
         }
