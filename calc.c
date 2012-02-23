@@ -57,7 +57,8 @@ char *chop(char *str)
         return str;
 }
 
-void print_error(struct Parser *parser, char *msg) {
+void print_error(struct Parser *parser, char *msg)
+{
         fprintf(stderr, "%s\n", msg);
         fprintf(stderr, "\t%s\n", parser->input);
 
